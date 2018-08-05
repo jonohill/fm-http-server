@@ -48,8 +48,8 @@ RUN cd /FFmpeg && \
         --enable-decoder=pcm_s16le \
         --enable-muxer=mpegts \
         --enable-muxer=hls \
-        --enable-muxer=ssegment \
-        --enable-demuxer=s16le \
+        --enable-muxer=stream_segment \
+        --enable-demuxer=pcm_s16le \
         --enable-protocol=pipe \
         --enable-protocol=file \
         && \
