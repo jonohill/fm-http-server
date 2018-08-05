@@ -48,6 +48,7 @@ RUN cd /FFmpeg && \
         --enable-decoder=pcm_s16le \
         --enable-muxer=mpegts \
         --enable-muxer=hls \
+        --enable-muxer=ssegment \
         --enable-demuxer=s16le \
         --enable-protocol=pipe \
         --enable-protocol=file \
@@ -62,7 +63,8 @@ RUN apt-get update && apt-get install -y \
     libc-bin \
     libc6 \
     libstdc++6 \
-    libva-drm1
+    libva-drm1 \
+    rtl-sdr
 
 COPY --from=builder /ngsoftfm/build/softfm /usr/bin/
 COPY --from=builder /FFmpeg/ffmpeg /usr/bin/
