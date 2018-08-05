@@ -52,6 +52,7 @@ RUN cd /FFmpeg && \
         --enable-demuxer=pcm_s16le \
         --enable-protocol=pipe \
         --enable-protocol=file \
+        --enable-filter=aresample \
         && \
     make -j8
 
