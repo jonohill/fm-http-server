@@ -59,14 +59,30 @@ RUN cd /FFmpeg && \
 FROM debian:stretch
 
 RUN apt-get update && apt-get install -y \
+    apache2 \
     libasound2 \
     libbladerf1 \
     libc-bin \
     libc6 \
     libstdc++6 \
     libva-drm1 \
+    python3 \
     rtl-sdr
 
 COPY --from=builder /ngsoftfm/build/softfm /usr/bin/
 COPY --from=builder /FFmpeg/ffmpeg /usr/bin/
-COPY --from=httpd /usr/local/bin/httpd-foreground /usr/local/bin/ 
+
+# Web server config
+RUN cd /etc/apache2 && \
+    rm -rf sites-enabled/* && \
+    cd mods-enabled && \
+        ln -s ../mods-available/cgid.load cgid.load && \
+        ln -s ../mods-available/rewrite.load rewrite.load 
+COPY fm-hls.conf /etc/apache2/sites-enabled/
+# TODO Is having extra stuff in cgi-bin an issue?
+COPY src/ /var/www/cgi-bin/
+RUN pipenv install --system --deploy
+
+EXPOSE 80
+
+CMD ["apachectl", "-DFOREGROUND"]
