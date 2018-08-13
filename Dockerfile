@@ -56,7 +56,7 @@ RUN cd /FFmpeg && \
         && \
     make -j8
 
-FROM debian:stretch
+FROM python:3-stretch
 
 RUN apt-get update && apt-get install -y \
     apache2 \
@@ -66,8 +66,6 @@ RUN apt-get update && apt-get install -y \
     libc6 \
     libstdc++6 \
     libva-drm1 \
-    python3 \
-    python3-pip \
     rtl-sdr
 RUN pip3 install pipenv
 
