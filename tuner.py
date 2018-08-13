@@ -24,13 +24,14 @@ import signal
 args = docopt(__doc__)
 
 def getIntArg(argName):
-    if argName in args:
-        try:
+    try:
+        val = args[argName]
+        if val is None:
+            return None
+        else:
             return int(args[argName])
-        except ValueError:
-            raise ValueError(f'{argName} must be an integer')
-    else:
-        return None
+    except ValueError:
+        raise ValueError(f'{argName} must be an integer')
 
 freq = getIntArg('<kHz>')
 bitrate = getIntArg('--bitrate')
