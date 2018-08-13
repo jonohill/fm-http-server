@@ -67,7 +67,9 @@ RUN apt-get update && apt-get install -y \
     libstdc++6 \
     libva-drm1 \
     python3 \
+    python3-pip \
     rtl-sdr
+RUN pip3 install pipenv
 
 COPY --from=builder /ngsoftfm/build/softfm /usr/bin/
 COPY --from=builder /FFmpeg/ffmpeg /usr/bin/
@@ -80,9 +82,13 @@ RUN cd /etc/apache2 && \
         ln -s ../mods-available/rewrite.load rewrite.load 
 COPY fm-hls.conf /etc/apache2/sites-enabled/
 # TODO Is having extra stuff in cgi-bin an issue?
-COPY src/ /var/www/cgi-bin/
-RUN pipenv install --system --deploy
+COPY *.py /var/www/cgi-bin/
+COPY Pipfile* /var/www/cgi-bin/
+WORKDIR /var/www/cgi-bin/
+RUN export LC_ALL=C.UTF-8 && export LANG=C.UTF-8 && \
+    pipenv install --system --deploy
 
 EXPOSE 80
 
+# TODO Run as correct user and from correct location
 CMD ["apachectl", "-DFOREGROUND"]
