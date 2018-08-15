@@ -51,6 +51,7 @@ def log(msg):
 
 run = True
 def setRunTrue(signum, frame):
+    global run
     run = True
 signal.signal(signal.SIGUSR1, setRunTrue)
 
