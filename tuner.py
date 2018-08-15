@@ -17,7 +17,9 @@ Options:
 from docopt import docopt
 import subprocess
 import shlex
+import os
 from os import path
+import glob
 import sys
 import signal
 
@@ -75,7 +77,11 @@ try:
                         break
         log("Runtime expired")
 
-        # TODO Check for and cleanup the segment files
+    # Clean up output files
+    os.remove(outPath)
+    files = glob.glob(path.join(path.dirname(outPath), 'fm*.ts'))
+    for f in files:
+        os.remove(f)
                     
 except FileNotFoundError as e:
     log(f'ERROR: {e.filename} is not installed')
