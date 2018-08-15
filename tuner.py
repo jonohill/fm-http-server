@@ -76,12 +76,6 @@ try:
                         log("Runtime timer reset")
                         break
         log("Runtime expired")
-
-    # Clean up output files
-    os.remove(outPath)
-    files = glob.glob(path.join(path.dirname(outPath), 'fm*.ts'))
-    for f in files:
-        os.remove(f)
                     
 except FileNotFoundError as e:
     log(f'ERROR: {e.filename} is not installed')
@@ -94,4 +88,10 @@ finally:
     except Exception as e:
         log('Killing ffmpeg process failed')
         log(e)
+    # Clean up output files
+    os.remove(outPath)
+    files = glob.glob(path.join(path.dirname(outPath), 'fm*.ts'))
+    for f in files:
+        os.remove(f)
+                
     logfile.close()
