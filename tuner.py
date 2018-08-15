@@ -54,6 +54,8 @@ def setRunTrue():
     run = True
 signal.signal(signal.SIGUSR1, setRunTrue)
 
+fmProcess = None
+ffProcess = None
 try:
     fmProcess = subprocess.Popen(shlex.split(f'softfm -t rtlsdr -c freq={freq}000 -R -'), stdout=subprocess.PIPE, stderr=logfile)
     ffProcess = subprocess.Popen(shlex.split(f'ffmpeg -f s16le -ac 2 -ar 48000 -i - -acodec aac -b:a {bitrate}k -f ssegment -segment_list "{outPath}" -segment_list_type hls -segment_list_size 10 -segment_list_flags +live -segment_time 10 -hls_flags delete_segments -y {segmentsPath}'), stdin=fmProcess.stdout, stderr=logfile)
@@ -71,8 +73,6 @@ try:
                         log("Runtime timer reset")
                         break
         log("Runtime expired")
-        ffProcess.send_signal(signal.SIGTERM)
-        ffProcess.communicate()
 
         # TODO Check for and cleanup the segment files
                     
@@ -80,4 +80,11 @@ except FileNotFoundError as e:
     log(f'ERROR: {e.filename} is not installed')
     raise
 finally:
+    try:
+        if ffProcess is not None:
+            ffProcess.send_signal(signal.SIGTERM)
+            ffProcess.communicate()
+    except Exception as e:
+        log('Killing ffmpeg process failed')
+        log(e)
     logfile.close()
