@@ -50,7 +50,7 @@ def log(msg):
     print(msg, file=logfile)
 
 run = True
-def setRunTrue():
+def setRunTrue(signum, frame):
     run = True
 signal.signal(signal.SIGUSR1, setRunTrue)
 
