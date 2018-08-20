@@ -14,11 +14,11 @@ HTTP_M3U8_PATH = '/media/fm.m3u8'
 qs = cgi.parse()
 
 # Pull out the freq parameter
-FM_FREQ = 0
+fm_freq = 0
 if "frequency" in qs:
     val = qs["frequency"][0]
     try:
-        FM_FREQ = int(val)
+        fm_freq = str(int(val))
     except:
         print("Status: 400 Bad Request")
         print()
@@ -47,8 +47,8 @@ with open('/tmp/fm.pid', 'a+') as f:
         with open('/tmp/fm.freq', 'r') as fFreq:
             file_data = fFreq.read()
             if len(file_data) > 0:
-                set_freq = int(fFreq.read())
-        if set_freq == FM_FREQ:
+                set_freq = fFreq.read()
+        if set_freq == fm_freq:
             # Check that the process is still running, and if so send SIGUSR1 to reset the timeout
             try:
                 os.kill(fmPid, signal.SIGUSR1)
@@ -67,11 +67,11 @@ with open('/tmp/fm.pid', 'a+') as f:
         launch = True
     
     if launch:
-        newProc = subprocess.Popen(shlex.split(f'./tuner.py --logfile=/var/log/fm.log --output={M3U8_PATH} --bitrate={FM_BITRATE} --runtime=60 {FM_FREQ}'))
+        newProc = subprocess.Popen(shlex.split(f'./tuner.py --logfile=/var/log/fm.log --output={M3U8_PATH} --bitrate={FM_BITRATE} --runtime=60 {fm_freq}'))
         f.seek(0)
         f.write(str(newProc.pid).ljust(7)) # to ensure we overwrite any existing pid in the file
         with open('/tmp/fm.freq', 'w+') as fFreq:
-            fFreq.write(FM_FREQ)        
+            fFreq.write(fm_freq)        
 
         # Wait a bit for the m3u8 file to be produced
         for x in range(15):
