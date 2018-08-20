@@ -43,10 +43,10 @@ with open('/tmp/fm.pid', 'a+') as f:
     fmPid = f.read().strip()
     if len(fmPid) > 0:
         # pid set, so we can assume it's already running
-        setFreq = 0
+        set_freq = 0
         with open('/tmp/fm.freq', 'r') as fFreq:
-            setFreq = int(fFreq.read())
-        if setFreq == FM_FREQ:
+            set_freq = int(fFreq.read())
+        if set_freq == FM_FREQ:
             # Check that the process is still running, and if so send SIGUSR1 to reset the timeout
             try:
                 os.kill(fmPid, signal.SIGUSR1)
