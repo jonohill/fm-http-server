@@ -45,7 +45,9 @@ with open('/tmp/fm.pid', 'a+') as f:
         # pid set, so we can assume it's already running
         set_freq = 0
         with open('/tmp/fm.freq', 'r') as fFreq:
-            set_freq = int(fFreq.read())
+            file_data = fFreq.read()
+            if len(file_data) > 0:
+                set_freq = int(fFreq.read())
         if set_freq == FM_FREQ:
             # Check that the process is still running, and if so send SIGUSR1 to reset the timeout
             try:
