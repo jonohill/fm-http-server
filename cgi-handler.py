@@ -67,7 +67,7 @@ with open('/tmp/fm.pid', 'a+') as f:
         launch = True
     
     if launch:
-        newProc = subprocess.Popen(shlex.split(f'./tuner.py --logfile=/var/log/apache2/fm.log --output={M3U8_PATH} --bitrate={FM_BITRATE} --runtime=60 {fm_freq}'))
+        newProc = subprocess.Popen(shlex.split(f'./tuner.py --logfile=/tmp/fm.log --output={M3U8_PATH} --bitrate={FM_BITRATE} --runtime=60 {fm_freq}'))
         f.seek(0)
         f.write(str(newProc.pid).ljust(7)) # to ensure we overwrite any existing pid in the file
         with open('/tmp/fm.freq', 'w+') as fFreq:
