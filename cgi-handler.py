@@ -72,13 +72,13 @@ with open('/tmp/fm.pid', 'a+') as f:
             fFreq.write(FM_FREQ)        
 
         # Wait a bit for the m3u8 file to be produced
-        for x in range(10):
+        for x in range(15):
             if os.path.exists(M3U8_PATH):
                 break
             sleep(1)
         
         if not os.path.exists(M3U8_PATH):
-            log('The m3u8 file did not get created within 10 seconds, giving up')
+            log('The m3u8 file did not get created within 15 seconds, giving up')
             print('Status: 500 Server Error')
             exit(1)
 
