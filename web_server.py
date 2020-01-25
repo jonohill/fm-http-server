@@ -3,8 +3,8 @@ from aiohttp import web
 from tuner import Tuner
 import os
 
-FM_KHZ = os.environ.get('FM_KHZ', '99000')
-FM_BITRATE = os.environ.get('FM_BITRATE', '24000')
+FM_KHZ = int(os.environ.get('FM_KHZ', '99000'))
+FM_BITRATE = int(os.environ.get('FM_BITRATE', '24000'))
 
 routes = web.RouteTableDef()
 
