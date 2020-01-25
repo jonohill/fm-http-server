@@ -59,6 +59,7 @@ class Tuner:
             self._fm_proc = fm_proc = await asyncio.create_subprocess_exec('softfm',
                 '-t', 'rtlsdr',
                 '-c', f'freq={self.freq}000',
+                '-b', str(BUFFER_BLOCK_SEC),
                 '-R', '-', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             ff_proc = await asyncio.create_subprocess_exec('ffmpeg',
                 '-f', 's16le', '-ac', '2', '-ar', '48000', '-i', '-',
