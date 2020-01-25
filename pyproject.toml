@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "fm-hls"
+version = "0.1.0"
+description = ""
+authors = ["Jono Hill <jonathan@hillnz.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+aiohttp = "^3.6.2"
+
+[tool.poetry.dev-dependencies]
+pylint = "^2.4.4"
+rope = "^0.16.0"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"

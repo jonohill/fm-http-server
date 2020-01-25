@@ -1,2 +1,7 @@
 Dockerfile
 *.md
+poetry.lock
+pyproject.toml
+*.opus
+*.m4a
+*.caf
