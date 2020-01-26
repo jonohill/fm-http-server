@@ -6,7 +6,7 @@ import os
 import traceback
 import sys
     
-BUFFER_BLOCK_SEC = 0.1
+BUFFER_BLOCK_SEC = 0.05
 BUFFER_TOTAL_SEC = 10
 
 logging.basicConfig(level=os.environ.get('LOGLEVEL', 'DEBUG').upper())
@@ -78,7 +78,7 @@ class Tuner:
 
             async def pipe_data():
                 while not fm_proc.stdout.at_eof():
-                    ff_proc.stdin.write(await fm_proc.stdout.read(2 ** 16))
+                    ff_proc.stdin.write(await fm_proc.stdout.read(BUFFER_BLOCK_SEC * (48000 * 16)))
                     await ff_proc.stdin.drain()
                 if ff_proc.stdin.can_write_eof():
                     ff_proc.stdin.write_eof()
