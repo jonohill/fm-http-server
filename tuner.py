@@ -78,7 +78,7 @@ class Tuner:
 
             async def pipe_data():
                 while not fm_proc.stdout.at_eof():
-                    ff_proc.stdin.write(await fm_proc.stdout.read(BUFFER_BLOCK_SEC * (48000 * 16)))
+                    ff_proc.stdin.write(await fm_proc.stdout.read(math.ceil(BUFFER_BLOCK_SEC * (48000 * 16))))
                     await ff_proc.stdin.drain()
                 if ff_proc.stdin.can_write_eof():
                     ff_proc.stdin.write_eof()
