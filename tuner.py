@@ -3,15 +3,39 @@ from asyncio import subprocess
 import math
 import logging
 import os
+import signal
 import traceback
 import sys
+from time import time
+import shlex
     
-BUFFER_BLOCK_SEC = 0.1
+BUFFER_BLOCK_SEC = 0.05
 BUFFER_TOTAL_SEC = 10
 
 logging.basicConfig(level=os.environ.get('LOGLEVEL', 'DEBUG').upper())
 log = logging.getLogger(__name__)
+log_level = log.getEffectiveLevel()
 
+prev_instrumented = None, None
+instrumented = set()
+def instrument(name):
+    if log_level != logging.DEBUG:
+        return
+        
+    global prev_instrumented
+    global instrumented
+
+    if name in instrumented:
+        return
+    instrumented |= {name}
+
+    this_time = time()
+    prev_name, prev_time = prev_instrumented
+    if prev_name:
+        log.debug(f'~~~ INSTRUMENTATION: {prev_name} --> {name}: {this_time - prev_time}s')
+
+    prev_instrumented = name, this_time
+    
 class Tuner:
 
     def __init__(self, freq, bitrate=96000):
@@ -28,23 +52,23 @@ class Tuner:
 
         self._listeners = 0
         self._data_event = asyncio.Event()
-        self._fm_proc = None
+        self._proc = None
         self._tuned = False
         self._tune_task = None
 
     def listener_count(self):
         return self._listeners
 
-    def _kill_fm_proc(self):
+    async def _kill_proc(self):
         try:
-            if self._fm_proc:
-                self._fm_proc.kill()
+            if self._proc:
+                pgid = os.getpgid(self._proc.pid)
+                os.killpg(pgid, signal.SIGTERM)
         except ProcessLookupError:
             # Already dead
             pass
-        self._fm_proc = None
+        self._proc = None
             
-
     async def tune(self):
         if self._tuned:
             await self._tune_task
@@ -56,36 +80,37 @@ class Tuner:
             self._min = 0
             self._max = -1
 
-            self._fm_proc = fm_proc = await asyncio.create_subprocess_exec('softfm',
+            quote = lambda *args: ' '.join([ shlex.quote(s) for s in args ])
+            cmd = quote(
+                'softfm',
                 '-t', 'rtlsdr',
-                '-c', f'freq={self.freq}000',
-                '-R', '-', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            ff_proc = await asyncio.create_subprocess_exec('ffmpeg',
+                '-c', f'freq={self.freq}000,blklen={BUFFER_BLOCK_SEC * 2}',
+                '-b', str(BUFFER_BLOCK_SEC),
+                '-R', '-') + ' | ' + quote(
+                'ffmpeg',
                 '-f', 's16le', '-ac', '2', '-ar', '48000', '-i', '-',
-                '-acodec', 'libopus', '-b:a', f'{self.bitrate}', '-f', 'mpegts', '-',
-                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                '-acodec', 'libopus', '-b:a', f'{self.bitrate}',
+                '-f', 'mpegts', '-pes_payload_size', '500', '-')
+            log.debug(cmd)
+            self._proc = proc = await asyncio.create_subprocess_shell(cmd, preexec_fn=os.setsid, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            instrument('softfm/ffmpeg started')
 
-            async def read_stderr(reader: asyncio.StreamReader, logger):
-                while not reader.at_eof():
+            async def read_stderr():
+                stderr = proc.stderr
+                while not stderr.at_eof():
                     try:
-                        line_bytes = await reader.readuntil()
+                        line_bytes = await stderr.readuntil()
                     except asyncio.LimitOverrunError as err:
-                        line_bytes = await reader.read(err.consumed)
+                        line_bytes = await stderr.read(err.consumed)
                     except asyncio.IncompleteReadError as err:
                         line_bytes = err.partial
-                    logger.info(line_bytes.decode('utf-8').strip())
-
-            async def pipe_data():
-                while not fm_proc.stdout.at_eof():
-                    ff_proc.stdin.write(await fm_proc.stdout.read(2 ** 16))
-                    await ff_proc.stdin.drain()
-                if ff_proc.stdin.can_write_eof():
-                    ff_proc.stdin.write_eof()
+                    log.info('softfm/ffmpeg: ' + line_bytes.decode('utf-8').strip())
             
             async def read_stdout():
                 chunk = True
                 while chunk:
-                    chunk = await ff_proc.stdout.read(self._block_size)
+                    chunk = await proc.stdout.read(self._block_size)
+                    instrument('ffmpeg packet')
                     if chunk:
                         self._max += 1
                         self._buffer[self._max] = chunk
@@ -96,16 +121,14 @@ class Tuner:
                                 pass
                             self._min += 1
                     self._data_event.set()
-
-            fm_proc_log_task = read_stderr(fm_proc.stderr, logging.getLogger('softfm'))
-            ff_proc_log_task = read_stderr(ff_proc.stderr, logging.getLogger('ffmpeg'))
             
-            for t in asyncio.as_completed([fm_proc_log_task, ff_proc_log_task, read_stdout(), pipe_data()]):
+            instrument('start tasks')
+            for t in asyncio.as_completed([read_stderr(), read_stdout()]):
                 try:
                     await t
                 except Exception:
                     log.debug('tuner exception: ' + traceback.format_exc())
-                    self._kill_fm_proc()
+                    await self._kill_proc()
         finally:
             self._tuned = False
 
@@ -115,6 +138,7 @@ class Tuner:
 
     async def listen(self):
         '''Generator of chunks of audio. Cancel the generator to stop listening.'''
+        instrument('listen generator started')
         try:
             self._listeners += 1
             if not self._tune_task:
@@ -129,6 +153,7 @@ class Tuner:
                     if not run_generator:
                         break
                     chunk = self._buffer[pos]
+                    instrument('gen chunk')
                     yield chunk
                     pos += 1
 
@@ -146,7 +171,9 @@ class Tuner:
                 for t in done:
                     try:
                         if t == gen_task:
-                            yield await t
+                            chunk = await t
+                            instrument('listen chunk')
+                            yield chunk
                             pending |= { create_gen_task() }
                         else:
                             log.warning('Tune task completed!')
@@ -160,8 +187,8 @@ class Tuner:
             self._listeners -= 1
             if self._listeners <= 0:
                 self._listeners = 0
-                if self._fm_proc:
-                    self._kill_fm_proc()
+                if self._proc:
+                    await self._kill_proc()
                     tune_task = self._tune_task
                     self._tune_task = None
                     await tune_task
