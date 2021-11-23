@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: build
       env:
         DOCKER_REPO: docker.pkg.github.com/${{ github.repository }}/fm-http-server
